@@ -21,5 +21,5 @@ interface FlatReportRow {
  * as a table row
  */
 interface ReportRow : FlatReportRow {
-    val children : List<ReportRow>
+    val children : MutableList<ReportRow>
 }

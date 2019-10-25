@@ -59,7 +59,7 @@ class Settings {
     @JsonDeserialize(using = LocalDateDeserializer::class)
     var endDate: LocalDate? = null
 
-    var lastUsedGroupByCategoryId: String? = null
+    var lastUsedGroupByCategoryIds: MutableList<String> = mutableListOf()
     var lastUsedFilePath: String? = null
     var isLoadDataAtStartup = false
     var isShowStatistics = true

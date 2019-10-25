@@ -13,7 +13,7 @@ data class IssueReportRow(val issue: Issue) : ReportRow {
     override val isSummary: Boolean = false
 
     override val label: String = issue.fullTitle
-    override val children: List<ReportRow> = emptyList()
+    override val children: MutableList<ReportRow> = mutableListOf()
     override val totalDurationInMinutes: Long = issue.getTotalTimeInMinutes()
 
     override fun getDurationInMinutes(date: LocalDate): Long = issue.getTimeInMinutesSpentOn(date)

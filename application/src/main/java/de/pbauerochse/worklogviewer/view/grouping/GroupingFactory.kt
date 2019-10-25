@@ -12,7 +12,6 @@ object GroupingFactory {
     private val REPORT_GROUP_COMPARATOR = Comparator<Field> { o1, o2 -> COLLATOR.compare(o1.name, o2.name) }
 
     private val FIXED_GROUPINGS = listOf(
-        NoopGrouping,
         ProjectGrouping,
         WorklogItemBasedGrouping("WORKTYPE", getFormatted("grouping.worktype")) { it.workType },
         WorklogItemBasedGrouping("WORKAUTHOR", getFormatted("grouping.workauthor")) { it.user.displayName }

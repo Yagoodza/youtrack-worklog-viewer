@@ -4,6 +4,7 @@ import de.pbauerochse.worklogviewer.WorklogViewer
 import de.pbauerochse.worklogviewer.connector.YouTrackConnectorLocator
 import de.pbauerochse.worklogviewer.fx.components.plugins.PluginMenu
 import de.pbauerochse.worklogviewer.fx.components.plugins.PluginToolbarActionGroup
+import de.pbauerochse.worklogviewer.fx.components.setCheckedItems
 import de.pbauerochse.worklogviewer.fx.components.tabs.TimeReportResultTabbedPane
 import de.pbauerochse.worklogviewer.fx.converter.GroupingComboBoxConverter
 import de.pbauerochse.worklogviewer.fx.converter.TimerangeProviderStringConverter
@@ -36,10 +37,12 @@ import de.pbauerochse.worklogviewer.util.FormattingUtil.getFormatted
 import de.pbauerochse.worklogviewer.version.Version
 import de.pbauerochse.worklogviewer.view.grouping.Grouping
 import de.pbauerochse.worklogviewer.view.grouping.GroupingFactory
-import de.pbauerochse.worklogviewer.view.grouping.NoopGrouping
+import de.pbauerochse.worklogviewer.view.grouping.Groupings
 import javafx.application.Platform
 import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.value.ChangeListener
+import javafx.collections.FXCollections
+import javafx.collections.ListChangeListener
 import javafx.concurrent.Worker
 import javafx.concurrent.WorkerStateEvent
 import javafx.event.EventHandler
@@ -52,6 +55,7 @@ import javafx.scene.layout.HBox
 import javafx.scene.layout.Pane
 import javafx.scene.layout.StackPane
 import javafx.scene.layout.VBox
+import org.controlsfx.control.CheckComboBox
 import org.slf4j.LoggerFactory
 import java.net.URL
 import java.time.LocalDate
@@ -67,7 +71,7 @@ class MainViewController : Initializable, TaskRunner, TaskExecutor {
     private lateinit var timerangeComboBox: ComboBox<TimerangeProvider>
 
     @FXML
-    private lateinit var groupByCategoryComboBox: ComboBox<Grouping>
+    private lateinit var groupByMultipleCheckComboBox: CheckComboBox<Grouping>
 
     @FXML
     private lateinit var fetchWorklogButton: Button
@@ -162,9 +166,14 @@ class MainViewController : Initializable, TaskRunner, TaskExecutor {
             converter = TimerangeProviderStringConverter()
             items.addAll(TimerangeProviders.allTimerangeProviders)
             selectionModel.select(settingsModel.lastUsedReportTimerangeProperty.get())
-            selectionModel.selectedItemProperty().addListener { _, _, selectedTimerange -> timerangeChanged(selectedTimerange) }
+            selectionModel.selectedItemProperty()
+                .addListener { _, _, selectedTimerange -> timerangeChanged(selectedTimerange) }
         }
-        settingsModel.lastUsedReportTimerangeProperty.addListener { _, _, newValue -> timerangeComboBox.selectionModel.select(newValue) }
+        settingsModel.lastUsedReportTimerangeProperty.addListener { _, _, newValue ->
+            timerangeComboBox.selectionModel.select(
+                newValue
+            )
+        }
         timerangeChanged(settingsModel.lastUsedReportTimerangeProperty.value)
     }
 
@@ -188,10 +197,12 @@ class MainViewController : Initializable, TaskRunner, TaskExecutor {
             }
         }
 
-        startDatePicker.disableProperty().bind(timerangeComboBox.selectionModel.selectedItemProperty().isNotEqualTo(CustomTimerangeProvider))
+        startDatePicker.disableProperty()
+            .bind(timerangeComboBox.selectionModel.selectedItemProperty().isNotEqualTo(CustomTimerangeProvider))
         startDatePicker.valueProperty().addListener(dateChangeListener)
 
-        endDatePicker.disableProperty().bind(timerangeComboBox.selectionModel.selectedItemProperty().isNotEqualTo(CustomTimerangeProvider))
+        endDatePicker.disableProperty()
+            .bind(timerangeComboBox.selectionModel.selectedItemProperty().isNotEqualTo(CustomTimerangeProvider))
         endDatePicker.valueProperty().addListener(dateChangeListener)
 
         DatePickerManualEditListener.applyTo(startDatePicker)
@@ -304,33 +315,40 @@ class MainViewController : Initializable, TaskRunner, TaskExecutor {
     }
 
     private fun initializeGroupingComboBox() {
-        groupByCategoryComboBox.apply {
+        val groupingsCollection = FXCollections.observableArrayList<Grouping>()
+
+        groupByMultipleCheckComboBox.apply {
             disableProperty().bind(currentTimeReportProperty.isNull)
-            converter = GroupingComboBoxConverter(groupByCategoryComboBox)
-            selectionModel.selectedItemProperty().addListener { _, _, groupByCategory ->
-                groupByCategory?.let {
-                    settingsModel.lastUsedGroupByCategoryIdProperty.set(groupByCategory.id)
-                    displayWorklogResult()
-                }
-            }
+            converter = GroupingComboBoxConverter(groupByMultipleCheckComboBox.items)
+            checkModel.checkedItems.addListener(ListChangeListener { change ->
+                val checkedItemsInOrder = change.list
+                settingsModel.lastUsedGroupByCategoryIdsProperty.setAll(checkedItemsInOrder.map { it.id })
+                displayWorklogResult()
+            })
         }
+
+        groupingsCollection.addListener(ListChangeListener {
+            groupByMultipleCheckComboBox.items.clear()
+            groupByMultipleCheckComboBox.items.addAll(it.list)
+        })
 
         currentTimeReportProperty.addListener { _, _, newTimeReport ->
             newTimeReport?.let { report ->
                 val allGroupings = GroupingFactory.getAvailableGroupings(report)
                 val selectedGrouping = getSelectedGrouping(allGroupings)
-                groupByCategoryComboBox.items.clear()
-                groupByCategoryComboBox.items.addAll(allGroupings)
-                groupByCategoryComboBox.selectionModel.select(selectedGrouping)
+                groupingsCollection.clear()
+                groupingsCollection.addAll(allGroupings)
+
+                groupByMultipleCheckComboBox.checkModel.setCheckedItems(selectedGrouping)
+                displayWorklogResult()
             }
         }
     }
 
-    private fun getSelectedGrouping(allGroupings: List<Grouping>): Grouping {
-        val groupingFromStoredSetting = settingsModel.lastUsedGroupByCategoryIdProperty.get()?.let { lastUsedGroupingId ->
+    private fun getSelectedGrouping(allGroupings: List<Grouping>): List<Grouping> {
+        return settingsModel.lastUsedGroupByCategoryIdsProperty.mapNotNull { lastUsedGroupingId ->
             allGroupings.find { it.id == lastUsedGroupingId }
         }
-        return groupingFromStoredSetting ?: NoopGrouping
     }
 
     private fun addDownloadLinkToToolbarIfNeverVersionPresent(event: WorkerStateEvent) {
@@ -366,7 +384,10 @@ class MainViewController : Initializable, TaskRunner, TaskExecutor {
                 matches(settingsModel.fetchWorklogsKeyboardCombination, event) -> fetchWorklogs()
                 matches(settingsModel.showIssueSearchKeyboardCombination, event) -> showAddWorkitemDialog()
                 matches(settingsModel.showSettingsKeyboardCombination, event) -> showSettingsDialogue()
-                matches(settingsModel.toggleStatisticsKeyboardCombination, event) -> settingsModel.showStatisticsProperty.set(!settingsModel.showStatisticsProperty.get())
+                matches(
+                    settingsModel.toggleStatisticsKeyboardCombination,
+                    event
+                ) -> settingsModel.showStatisticsProperty.set(!settingsModel.showStatisticsProperty.get())
                 matches(settingsModel.exitWorklogViewerKeyboardCombination, event) -> exitWorklogViewer()
             }
         }
@@ -400,14 +421,15 @@ class MainViewController : Initializable, TaskRunner, TaskExecutor {
     private fun displayWorklogResult() {
         LOGGER.info("Presenting TimeReport to the user")
         val timeReport = currentTimeReportProperty.value!!
-        val grouping = groupByCategoryComboBox.selectionModel.selectedItem
-        resultTabPane.update(timeReport, grouping)
+        val groupings = Groupings(groupByMultipleCheckComboBox.checkModel.checkedItems)
+        resultTabPane.update(timeReport, groupings)
     }
 
     private fun exitWorklogViewer() {
         WorklogViewer.getInstance().requestShutdown()
     }
 
+    @Suppress("UNCHECKED_CAST")
     override fun <T> start(task: PluginTask<T>, callback: TaskCallback<T>?) {
         val wrapper = object : WorklogViewerTask<T?>(task.label) {
             override fun start(progress: Progress): T? = task.run(progress)
@@ -433,7 +455,7 @@ class MainViewController : Initializable, TaskRunner, TaskExecutor {
      */
     internal object TaskInitializer {
 
-        internal fun <T> initialize(taskProgressContainer: Pane, task: WorklogViewerTask<T>) : WorklogViewerTask<T> {
+        internal fun <T> initialize(taskProgressContainer: Pane, task: WorklogViewerTask<T>): WorklogViewerTask<T> {
             val progressbar = TaskProgressBar(task, true)
             bindOnRunning(task, progressbar, taskProgressContainer)
             bindOnSucceeded(task, progressbar)
@@ -441,7 +463,11 @@ class MainViewController : Initializable, TaskRunner, TaskExecutor {
             return task
         }
 
-        private fun bindOnRunning(task : WorklogViewerTask<*>, progressbar: TaskProgressBar, progressbarContainer : Pane) {
+        private fun bindOnRunning(
+            task: WorklogViewerTask<*>,
+            progressbar: TaskProgressBar,
+            progressbarContainer: Pane
+        ) {
             val initialHandler = task.onRunning
             task.setOnRunning {
                 progressbarContainer.children.add(progressbar)

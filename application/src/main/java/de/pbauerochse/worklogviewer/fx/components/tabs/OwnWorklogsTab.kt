@@ -12,7 +12,7 @@ import de.pbauerochse.worklogviewer.report.Issue
 import de.pbauerochse.worklogviewer.report.TimeReport
 import de.pbauerochse.worklogviewer.report.view.ReportView
 import de.pbauerochse.worklogviewer.util.FormattingUtil.getFormatted
-import de.pbauerochse.worklogviewer.view.grouping.Grouping
+import de.pbauerochse.worklogviewer.view.grouping.Groupings
 import javafx.scene.Node
 import org.slf4j.LoggerFactory
 
@@ -22,9 +22,9 @@ import org.slf4j.LoggerFactory
  */
 internal class OwnWorklogsTab : WorklogsTab(LABEL) {
 
-    fun update(report: TimeReport, grouping: Grouping) {
+    fun update(report: TimeReport, groupings: Groupings) {
         LOGGER.debug("Showing own worklogs")
-        update(LABEL, extractOwnWorklogs(report), report.reportParameters, grouping)
+        update(LABEL, extractOwnWorklogs(report), report.reportParameters, groupings)
     }
 
     override fun getStatistics(reportView: ReportView): List<Node> {

@@ -19,10 +19,13 @@ internal object ProjectGrouping : Grouping {
             .map { createGroup(it.key, it.value) }
     }
 
+    override fun group(issues: List<Issue>): Map<String, List<Issue>> = issues.asSequence()
+        .groupBy { it.project }
+
     private fun createGroup(label : String, issues: List<Issue>) : ReportRow {
         val issueRows = issues.asSequence()
-            .map { IssueReportRow(it) }
-            .toList()
+            .map { IssueReportRow(it) as ReportRow }
+            .toMutableList()
         return GroupReportRow(label, issueRows)
     }
 

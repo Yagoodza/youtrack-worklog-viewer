@@ -7,7 +7,7 @@ import java.time.LocalDate
  * A headline, collapsable row in the [de.pbauerochse.worklogviewer.fx.components.treetable.TimeReportTreeTableView] containing
  * one or more [IssueReportRow]s that belong to this group
  */
-data class GroupReportRow(override val label: String, override val children: List<ReportRow>) : ReportRow {
+data class GroupReportRow(override val label: String, override val children: MutableList<ReportRow>) : ReportRow {
     override val isGrouping: Boolean = true
     override val isIssue: Boolean = false
     override val isSummary: Boolean = false

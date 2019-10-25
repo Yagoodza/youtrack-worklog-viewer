@@ -4,9 +4,7 @@ import de.pbauerochse.worklogviewer.report.Issue
 import de.pbauerochse.worklogviewer.report.TimeReportParameters
 import de.pbauerochse.worklogviewer.report.view.ReportRow
 import de.pbauerochse.worklogviewer.report.view.ReportView
-import de.pbauerochse.worklogviewer.view.grouping.Grouping
-import de.pbauerochse.worklogviewer.view.grouping.Grouping.Companion.UNGROUPED
-import de.pbauerochse.worklogviewer.view.grouping.NoopGrouping
+import de.pbauerochse.worklogviewer.view.grouping.Groupings
 import org.slf4j.LoggerFactory
 import java.text.Collator
 import java.util.*
@@ -23,24 +21,14 @@ object ReportViewFactory {
 
     private val COLLATOR = Collator.getInstance(Locale.getDefault())
     private val REPORT_ROW_COMPARATOR = Comparator<ReportRow> { o1, o2 ->
-        val o1Label = o1.label
-        val o2Label = o2.label
-
-        // Ungrouped items always last
-        return@Comparator if (UNGROUPED == o1Label && UNGROUPED != o2Label) {
-            1
-        } else if (UNGROUPED != o1Label && UNGROUPED == o2Label) {
-            -1
-        } else {
-            COLLATOR.compare(o1.label, o2.label)
-        }
+        return@Comparator COLLATOR.compare(o1.label, o2.label)
     }
 
-    fun convert(issues: List<Issue>, reportParameters: TimeReportParameters, grouping: Grouping = NoopGrouping): ReportView {
-        LOGGER.debug("Converting ${issues.size} Issues for ${reportParameters.timerange} with grouping $grouping to ReportView")
-        val groups = grouping.rows(issues).sortedWith(REPORT_ROW_COMPARATOR)
+    fun convert(issues: List<Issue>, reportParameters: TimeReportParameters, groupings: Groupings): ReportView {
+        LOGGER.debug("Converting ${issues.size} Issues for ${reportParameters.timerange} with grouping $groupings to ReportView")
+
+        val groups = groupings.rows(issues).sortedWith(REPORT_ROW_COMPARATOR)
         val summaryReportRow = SummaryReportRow(issues)
         return ReportView(groups + summaryReportRow, issues, reportParameters)
     }
-
 }

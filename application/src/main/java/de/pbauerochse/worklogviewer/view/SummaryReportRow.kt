@@ -11,7 +11,7 @@ data class SummaryReportRow(val issues: List<Issue>) : ReportRow {
     override val isSummary: Boolean = true
 
     override val label: String = getFormatted("view.main.summary")
-    override val children: List<ReportRow> = emptyList()
+    override val children: MutableList<ReportRow> = mutableListOf()
 
     override val totalDurationInMinutes: Long = issues.asSequence()
         .map { it.getTotalTimeInMinutes() }

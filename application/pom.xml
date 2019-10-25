@@ -127,6 +127,11 @@
         </dependency>
 
         <dependency>
+            <groupId>org.controlsfx</groupId>
+            <artifactId>controlsfx</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-web</artifactId>
             <classifier>${javafx-binary-variant}</classifier>

@@ -14,7 +14,7 @@ import de.pbauerochse.worklogviewer.report.view.ReportView
 import de.pbauerochse.worklogviewer.settings.SettingsUtil
 import de.pbauerochse.worklogviewer.util.FormattingUtil.getFormatted
 import de.pbauerochse.worklogviewer.view.ReportViewFactory
-import de.pbauerochse.worklogviewer.view.grouping.Grouping
+import de.pbauerochse.worklogviewer.view.grouping.Groupings
 import javafx.geometry.Insets
 import javafx.geometry.Orientation
 import javafx.scene.Node
@@ -44,9 +44,9 @@ abstract class WorklogsTab(label: String) : Tab(label), TabContext {
         showStatisticsView(settingsModel.showStatisticsProperty.get())
     }
 
-    fun update(label: String, filteredIssues: List<Issue>, reportParameters: TimeReportParameters, grouping: Grouping) {
+    fun update(label: String, filteredIssues: List<Issue>, reportParameters: TimeReportParameters, groupings: Groupings) {
         text = label
-        nextData = ReportViewFactory.convert(filteredIssues, reportParameters, grouping)
+        nextData = ReportViewFactory.convert(filteredIssues, reportParameters, groupings)
 
         if (isSelected) {
             renderContent()

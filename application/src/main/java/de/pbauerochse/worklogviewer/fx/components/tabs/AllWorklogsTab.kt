@@ -8,7 +8,7 @@ import de.pbauerochse.worklogviewer.fx.components.statistics.panels.TimePerUserA
 import de.pbauerochse.worklogviewer.report.TimeReport
 import de.pbauerochse.worklogviewer.report.view.ReportView
 import de.pbauerochse.worklogviewer.util.FormattingUtil.getFormatted
-import de.pbauerochse.worklogviewer.view.grouping.Grouping
+import de.pbauerochse.worklogviewer.view.grouping.Groupings
 import javafx.scene.Node
 import org.slf4j.LoggerFactory
 
@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory
  */
 internal class AllWorklogsTab : WorklogsTab(getFormatted("view.main.tabs.all")) {
 
-    fun update(report: TimeReport, grouping: Grouping) {
+    fun update(report: TimeReport, grouping: Groupings) {
         LOGGER.debug("Showing all worklogs")
         update(text, report.issues, report.reportParameters, grouping)
     }

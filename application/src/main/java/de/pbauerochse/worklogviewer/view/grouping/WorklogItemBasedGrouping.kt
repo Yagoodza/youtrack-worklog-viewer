@@ -22,6 +22,18 @@ internal class WorklogItemBasedGrouping(
         }
     }
 
+    override fun group(issues: List<Issue>): Map<String, List<Issue>> = issues.asSequence()
+        .flatMap { it.worklogItems.asSequence() }
+        .groupBy { worklogItemGroupingKeyExtractor.invoke(it) ?: UNGROUPED }
+        .asSequence()
+        .associate { groupedWorklogItemMap ->
+            val groupingKey = groupedWorklogItemMap.key
+            val groupedIssues = groupedWorklogItemMap.value
+                .groupBy { it.issue }
+                .map { Issue(it.key, it.key.fields, it.value) }
+            Pair(groupingKey, groupedIssues)
+        }
+
     private fun groupedWorklogs(issues: List<Issue>) = issues.asSequence()
         .flatMap { it.worklogItems.asSequence() }
         .groupBy { worklogItemGroupingKeyExtractor.invoke(it) ?: UNGROUPED }
@@ -29,7 +41,8 @@ internal class WorklogItemBasedGrouping(
     private fun issueRows(worklogItems: List<WorklogItem>) = worklogItems.asSequence()
         .groupBy { it.issue }
         .map { Issue(it.key, it.key.fields, it.value) }
-        .map { IssueReportRow(it) }
+        .map { IssueReportRow(it) as ReportRow }
+        .toMutableList()
 
     override fun toString(): String = "${javaClass.name} for $label"
 }

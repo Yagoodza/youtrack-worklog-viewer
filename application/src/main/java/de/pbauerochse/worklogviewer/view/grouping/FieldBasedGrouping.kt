@@ -18,10 +18,13 @@ internal class FieldBasedGrouping(private val field: String) : Grouping {
         .groupBy { getFieldValue(it) }
         .map {
             val issueRows = it.value.asSequence()
-                .map { issue -> IssueReportRow(issue) }
-                .toList()
+                .map { issue -> IssueReportRow(issue) as ReportRow }
+                .toMutableList()
             GroupReportRow(it.key, issueRows)
         }
+
+    override fun group(issues: List<Issue>): Map<String, List<Issue>> = issues.asSequence()
+        .groupBy { getFieldValue(it) }
 
     private fun getFieldValue(issue: Issue): String {
         if (issue.fields.isEmpty()) {

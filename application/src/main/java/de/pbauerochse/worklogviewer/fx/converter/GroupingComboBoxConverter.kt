@@ -2,10 +2,10 @@ package de.pbauerochse.worklogviewer.fx.converter
 
 import de.pbauerochse.worklogviewer.util.FormattingUtil.getFormatted
 import de.pbauerochse.worklogviewer.view.grouping.Grouping
-import javafx.scene.control.ComboBox
+import javafx.collections.ObservableList
 import javafx.util.StringConverter
 
-class GroupingComboBoxConverter(private val categoryComboBox: ComboBox<Grouping>) : StringConverter<Grouping>() {
+class GroupingComboBoxConverter(private val items : ObservableList<Grouping>) : StringConverter<Grouping>() {
 
     override fun toString(category: Grouping?): String {
         return category?.label ?: getFormatted("grouping.none")
@@ -15,6 +15,6 @@ class GroupingComboBoxConverter(private val categoryComboBox: ComboBox<Grouping>
         // special "nothing-selected" item
         return if (getFormatted("grouping.none") == categoryName) {
             null
-        } else categoryComboBox.items.firstOrNull { it.label == categoryName }
+        } else items.firstOrNull { it.label == categoryName }
     }
 }

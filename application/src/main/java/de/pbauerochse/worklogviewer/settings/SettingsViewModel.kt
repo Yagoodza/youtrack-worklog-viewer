@@ -8,6 +8,8 @@ import de.pbauerochse.worklogviewer.toURL
 import javafx.beans.binding.BooleanBinding
 import javafx.beans.property.*
 import javafx.beans.value.ChangeListener
+import javafx.collections.FXCollections
+import javafx.collections.ListChangeListener
 import javafx.scene.input.KeyCombination
 import java.time.DayOfWeek.*
 import java.time.LocalDate
@@ -33,7 +35,7 @@ class SettingsViewModel internal constructor(val settings: Settings) {
     val lastUsedReportTimerangeProperty = SimpleObjectProperty<TimerangeProvider>()
     val startDateProperty = SimpleObjectProperty<LocalDate>()
     val endDateProperty = SimpleObjectProperty<LocalDate>()
-    val lastUsedGroupByCategoryIdProperty = SimpleStringProperty()
+    val lastUsedGroupByCategoryIdsProperty = FXCollections.observableArrayList<String>()
     val lastUsedFilePath = SimpleStringProperty()
 
     val collapseStateMondayProperty = SimpleBooleanProperty()
@@ -89,7 +91,7 @@ class SettingsViewModel internal constructor(val settings: Settings) {
         settings.lastUsedReportTimerange = lastUsedReportTimerangeProperty.get()
         settings.startDate = startDateProperty.get()
         settings.endDate = endDateProperty.get()
-        settings.lastUsedGroupByCategoryId = lastUsedGroupByCategoryIdProperty.get()
+        settings.lastUsedGroupByCategoryIds = lastUsedGroupByCategoryIdsProperty
 
         settings.collapseState.set(MONDAY, collapseStateMondayProperty.get())
         settings.collapseState.set(TUESDAY, collapseStateTuesdayProperty.get())
@@ -137,7 +139,7 @@ class SettingsViewModel internal constructor(val settings: Settings) {
         lastUsedFilePath.set(settings.lastUsedFilePath)
         startDateProperty.set(settings.startDate)
         endDateProperty.set(settings.endDate)
-        lastUsedGroupByCategoryIdProperty.set(settings.lastUsedGroupByCategoryId)
+        lastUsedGroupByCategoryIdsProperty.addAll(settings.lastUsedGroupByCategoryIds)
 
         collapseStateMondayProperty.set(settings.collapseState.isSet(MONDAY))
         collapseStateTuesdayProperty.set(settings.collapseState.isSet(TUESDAY))
@@ -182,7 +184,7 @@ class SettingsViewModel internal constructor(val settings: Settings) {
      */
     private fun bindAutoUpdatingProperties() {
         lastUsedReportTimerangeProperty.addListener(invokeSetter { settings.lastUsedReportTimerange = it })
-        lastUsedGroupByCategoryIdProperty.addListener(invokeSetter { settings.lastUsedGroupByCategoryId = it })
+        lastUsedGroupByCategoryIdsProperty.addListener(ListChangeListener { settings.lastUsedGroupByCategoryIds = it.list.toMutableList() })
         startDateProperty.addListener(invokeSetter { settings.startDate = it })
         endDateProperty.addListener(invokeSetter { settings.endDate = it })
         lastUsedFilePath.addListener(invokeSetter { settings.lastUsedFilePath = it })

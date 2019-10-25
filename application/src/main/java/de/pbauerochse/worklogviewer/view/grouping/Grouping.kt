@@ -12,4 +12,5 @@ interface Grouping {
     val id : String
     val label : String
     fun rows(issues: List<Issue>) : List<ReportRow>
+    fun group(issues: List<Issue>) : Map<String, List<Issue>>
 }
