@@ -292,6 +292,8 @@ class MainViewController : Initializable, TaskRunner, TaskExecutor {
         allGroupingComboBoxes.add(primaryGroupingComboBox)
         initializeGroupingComboBox(0, primaryGroupingComboBox)
 
+        // TODO initialize comboboxes from last session from the settings
+
         addGroupingButton.disableProperty().bind(Bindings.size(allGroupingComboBoxes).greaterThanOrEqualTo(MAX_GROUPINGS))
         addGroupingButton.onAction = EventHandler {
             val index = allGroupingComboBoxes.size
