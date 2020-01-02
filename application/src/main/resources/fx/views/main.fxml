@@ -3,7 +3,6 @@
 <?import de.pbauerochse.worklogviewer.fx.components.tabs.TimeReportResultTabbedPane?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<?import org.controlsfx.control.CheckComboBox?>
 <BorderPane fx:id="mainView" maxHeight="Infinity" maxWidth="Infinity" minHeight="0" minWidth="0" prefHeight="500.0" prefWidth="900.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="de.pbauerochse.worklogviewer.fx.MainViewController">
 
     <top>
@@ -45,7 +44,16 @@
                                         <Tooltip text="%view.main.download" />
                                     </tooltip>
                                 </Button>
-                                <CheckComboBox fx:id="groupByMultipleCheckComboBox" prefWidth="220.0" title="RAKETE" />
+
+                                <Separator orientation="VERTICAL" />
+
+                                <ComboBox fx:id="primaryGroupingComboBox" prefWidth="220.0" promptText="%view.main.groupby.prompt" />
+                                <Button fx:id="addGroupingButton" mnemonicParsing="false" prefHeight="26.0" prefWidth="26.0">
+                                    <tooltip>
+                                        <Tooltip text="%view.main.grouping.add" />
+                                    </tooltip>
+                                </Button>
+                                <HBox fx:id="additionalGroupingsContainer" />
 
                                 <Separator orientation="VERTICAL" />
                                 <HBox fx:id="pluginsToolbarButtons" />

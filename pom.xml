@@ -52,7 +52,6 @@
         <kotlin-compiler-java-target.version>1.8</kotlin-compiler-java-target.version>
         <kotlin.version>1.3.61</kotlin.version>
         <openjfx.version>11.0.2</openjfx.version>
-        <controlsfx.version>11.0.0</controlsfx.version>
 
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
         <maven-shade-plugin.version>3.2.1</maven-shade-plugin.version>
@@ -348,12 +347,6 @@
                 <artifactId>javafx-graphics</artifactId>
                 <classifier>${javafx-binary-variant}</classifier>
                 <version>${openjfx.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.controlsfx</groupId>
-                <artifactId>controlsfx</artifactId>
-                <version>${controlsfx.version}</version>
             </dependency>
 
         </dependencies>

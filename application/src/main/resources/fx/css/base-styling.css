@@ -8,6 +8,13 @@
     -fx-background-size: auto;
 }
 
+#addGroupingButton {
+    -fx-background-image: url(../img/add.png);
+    -fx-background-position: center;
+    -fx-background-repeat: no-repeat;
+    -fx-background-size: auto;
+}
+
 .resolved-issue-cell .text {
     -fx-strikethrough: true;
 }
