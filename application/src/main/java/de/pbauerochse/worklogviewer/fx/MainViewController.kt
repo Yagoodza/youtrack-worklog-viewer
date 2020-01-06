@@ -39,6 +39,10 @@ import de.pbauerochse.worklogviewer.view.grouping.GroupingFactory
 import de.pbauerochse.worklogviewer.view.grouping.Groupings
 import javafx.application.Platform
 import javafx.beans.binding.Bindings
+import javafx.beans.binding.ListBinding
+import javafx.beans.binding.ListExpression
+import javafx.beans.property.ListProperty
+import javafx.beans.property.SimpleListProperty
 import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.value.ChangeListener
 import javafx.collections.FXCollections
@@ -289,26 +293,29 @@ class MainViewController : Initializable, TaskRunner, TaskExecutor {
 
     private fun initializeGroupings() {
         // primary grouping ComboBox is always present
+        val settingsGroupingsProperty = SimpleListProperty(settingsModel.lastUsedGroupByCategoryIdsProperty)
+        CollectionBindings.bind(allGroupingComboBoxes, settingsModel.lastUsedGroupByCategoryIdsProperty) {
+            it.selectionModel.selectedItem?.id ?: Grouping.UNGROUPED
+        }
         allGroupingComboBoxes.add(primaryGroupingComboBox)
-        initializeGroupingComboBox(0, primaryGroupingComboBox)
+        initializeGroupingComboBox(primaryGroupingComboBox)
 
         // TODO initialize comboboxes from last session from the settings
 
         addGroupingButton.disableProperty().bind(Bindings.size(allGroupingComboBoxes).greaterThanOrEqualTo(MAX_GROUPINGS))
         addGroupingButton.onAction = EventHandler {
-            val index = allGroupingComboBoxes.size
             val removeGroupingButton = Button("x") // TODO styling
             val comboBox: ComboBox<Grouping> = ComboBox()
             currentTimeReportProperty.value?.let {
                 comboBox.items.addAll(GroupingFactory.getAvailableGroupings(it))
             }
-            initializeGroupingComboBox(index, comboBox)
+            initializeGroupingComboBox(comboBox)
 
             val groupingElement = HBox().apply {
                 children.addAll(comboBox, removeGroupingButton)
             }
 
-            allGroupingComboBoxes.add(index, comboBox)
+            allGroupingComboBoxes.add(comboBox)
             additionalGroupingsContainer.children.add(groupingElement)
 
             removeGroupingButton.onAction = EventHandler {
@@ -367,14 +374,14 @@ class MainViewController : Initializable, TaskRunner, TaskExecutor {
 //        }
     }
 
-    private fun initializeGroupingComboBox(index: Int, comboBox: ComboBox<Grouping>) {
+    private fun initializeGroupingComboBox(comboBox: ComboBox<Grouping>) {
         comboBox.apply {
             disableProperty().bind(currentTimeReportProperty.isNull)
             converter = GroupingComboBoxConverter(items)
             selectionModel.selectedItemProperty().addListener { _, _, selectedGrouping ->
                 selectedGrouping?.let {
-                    // TODO index might change when the user removes a group by criteria
-                    settingsModel.lastUsedGroupByCategoryIdsProperty[index] = selectedGrouping.id
+                    val index = allGroupingComboBoxes.indexOf(this)
+                    settingsModel.lastUsedGroupByCategoryIdsProperty.add(index, selectedGrouping.id)
                     displayWorklogResult()
                 }
             }

@@ -10,6 +10,7 @@ import javafx.beans.property.*
 import javafx.beans.value.ChangeListener
 import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
+import javafx.collections.ObservableList
 import javafx.scene.input.KeyCombination
 import java.time.DayOfWeek.*
 import java.time.LocalDate
@@ -35,7 +36,7 @@ class SettingsViewModel internal constructor(val settings: Settings) {
     val lastUsedReportTimerangeProperty = SimpleObjectProperty<TimerangeProvider>()
     val startDateProperty = SimpleObjectProperty<LocalDate>()
     val endDateProperty = SimpleObjectProperty<LocalDate>()
-    val lastUsedGroupByCategoryIdsProperty = FXCollections.observableArrayList<String>()
+    val lastUsedGroupByCategoryIdsProperty: ObservableList<String> = FXCollections.observableArrayList<String>()
     val lastUsedFilePath = SimpleStringProperty()
 
     val collapseStateMondayProperty = SimpleBooleanProperty()
