@@ -2,10 +2,10 @@ package de.pbauerochse.worklogviewer.fx
 
 import de.pbauerochse.worklogviewer.WorklogViewer
 import de.pbauerochse.worklogviewer.connector.YouTrackConnectorLocator
+import de.pbauerochse.worklogviewer.fx.components.groupings.GroupingSelector
 import de.pbauerochse.worklogviewer.fx.components.plugins.PluginMenu
 import de.pbauerochse.worklogviewer.fx.components.plugins.PluginToolbarActionGroup
 import de.pbauerochse.worklogviewer.fx.components.tabs.TimeReportResultTabbedPane
-import de.pbauerochse.worklogviewer.fx.converter.GroupingComboBoxConverter
 import de.pbauerochse.worklogviewer.fx.converter.TimerangeProviderStringConverter
 import de.pbauerochse.worklogviewer.fx.dialog.Dialog
 import de.pbauerochse.worklogviewer.fx.listener.DatePickerManualEditListener
@@ -39,9 +39,6 @@ import de.pbauerochse.worklogviewer.view.grouping.GroupingFactory
 import de.pbauerochse.worklogviewer.view.grouping.Groupings
 import javafx.application.Platform
 import javafx.beans.binding.Bindings
-import javafx.beans.binding.ListBinding
-import javafx.beans.binding.ListExpression
-import javafx.beans.property.ListProperty
 import javafx.beans.property.SimpleListProperty
 import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.value.ChangeListener
@@ -51,6 +48,7 @@ import javafx.concurrent.Worker
 import javafx.concurrent.WorkerStateEvent
 import javafx.event.EventHandler
 import javafx.fxml.Initializable
+import javafx.scene.Node
 import javafx.scene.control.*
 import javafx.scene.input.KeyCombination
 import javafx.scene.input.KeyEvent
@@ -70,9 +68,8 @@ import java.util.concurrent.Future
 class MainViewController : Initializable, TaskRunner, TaskExecutor {
 
     lateinit var timerangeComboBox: ComboBox<TimerangeProvider>
-    lateinit var primaryGroupingComboBox: ComboBox<Grouping>
     lateinit var addGroupingButton: Button
-    lateinit var additionalGroupingsContainer: HBox
+    lateinit var groupingsContainer: HBox
     lateinit var fetchWorklogButton: Button
     lateinit var exportToExcelMenuItem: MenuItem
     lateinit var settingsMenuItem: MenuItem
@@ -91,7 +88,8 @@ class MainViewController : Initializable, TaskRunner, TaskExecutor {
     private lateinit var settingsModel: SettingsViewModel
     private lateinit var dialog: Dialog
 
-    private val allGroupingComboBoxes: ObservableList<ComboBox<Grouping>> = FXCollections.observableArrayList()
+    private val currentlyAvailableGroupingCriterias: SimpleListProperty<Grouping> = SimpleListProperty(FXCollections.observableArrayList())
+    private val groupings: ObservableList<GroupingSelector> = FXCollections.observableArrayList()
 
     override fun initialize(location: URL?, resources: ResourceBundle) {
         LOGGER.debug("Initializing main view")
@@ -202,6 +200,14 @@ class MainViewController : Initializable, TaskRunner, TaskExecutor {
         // fetch worklog button click
         fetchWorklogButton.disableProperty().bind(settingsModel.hasMissingConnectionSettings)
         fetchWorklogButton.setOnAction { fetchWorklogs() }
+
+        // display TimeReport when ready
+        currentTimeReportProperty.addListener { _, _, newReport ->
+            if (newReport != null) {
+                updateGroupingCriteria(newReport)
+                displayWorklogResult()
+            }
+        }
     }
 
     private fun initializeMenuItems() {
@@ -291,107 +297,43 @@ class MainViewController : Initializable, TaskRunner, TaskExecutor {
         )
     }
 
+    private fun updateGroupingCriteria(timeReport: TimeReport) {
+        val groupings = GroupingFactory.getAvailableGroupings(timeReport)
+        LOGGER.debug("Updating available grouping criteria: $groupings")
+        currentlyAvailableGroupingCriterias.clear()
+        currentlyAvailableGroupingCriterias.addAll(groupings)
+    }
+
     private fun initializeGroupings() {
-        // primary grouping ComboBox is always present
-        val settingsGroupingsProperty = SimpleListProperty(settingsModel.lastUsedGroupByCategoryIdsProperty)
-        CollectionBindings.bind(allGroupingComboBoxes, settingsModel.lastUsedGroupByCategoryIdsProperty) {
-            it.selectionModel.selectedItem?.id ?: Grouping.UNGROUPED
-        }
-        allGroupingComboBoxes.add(primaryGroupingComboBox)
-        initializeGroupingComboBox(primaryGroupingComboBox)
+        // synchronize groupingsContainer with the groupings List
+        @Suppress("UNCHECKED_CAST")
+        Bindings.bindContentBidirectional(groupings as ObservableList<Node>, groupingsContainer.children)
 
-        // TODO initialize comboboxes from last session from the settings
+        // restore groupings from the settings
+        settingsModel.lastUsedGroupByCategoryIdsProperty.forEach { addGroupingSelector(it) }
 
-        addGroupingButton.disableProperty().bind(Bindings.size(allGroupingComboBoxes).greaterThanOrEqualTo(MAX_GROUPINGS))
-        addGroupingButton.onAction = EventHandler {
-            val removeGroupingButton = Button("x") // TODO styling
-            val comboBox: ComboBox<Grouping> = ComboBox()
-            currentTimeReportProperty.value?.let {
-                comboBox.items.addAll(GroupingFactory.getAvailableGroupings(it))
-            }
-            initializeGroupingComboBox(comboBox)
+        // add groupings button
+        addGroupingButton.disableProperty().bind(Bindings.size(groupings).greaterThanOrEqualTo(MAX_GROUPINGS).or(currentTimeReportProperty.isNull))
+        addGroupingButton.setOnAction { addGroupingSelector() }
 
-            val groupingElement = HBox().apply {
-                children.addAll(comboBox, removeGroupingButton)
-            }
-
-            allGroupingComboBoxes.add(comboBox)
-            additionalGroupingsContainer.children.add(groupingElement)
-
-            removeGroupingButton.onAction = EventHandler {
-                additionalGroupingsContainer.children.remove(groupingElement)
-                allGroupingComboBoxes.remove(comboBox)
-                // TODO refresh report
-            }
-        }
-
-        currentTimeReportProperty.addListener { _, _, newTimeReport ->
-            newTimeReport?.let { report ->
-                val possibleGroupings = GroupingFactory.getAvailableGroupings(report)
-                allGroupingComboBoxes.forEach {
-                    it.items.clear()
-                    it.items.addAll(possibleGroupings)
-                }
-
-
-                getSelectedGrouping(possibleGroupings).forEachIndexed { index, selectedGrouping ->
-                    if (index < allGroupingComboBoxes.size) {
-                        allGroupingComboBoxes[index].selectionModel.select(selectedGrouping)
-                    }
-                }
-            }
-        }
-
-
-        //
-//        val groupingsCollection = FXCollections.observableArrayList<Grouping>()
-//          TODO fix me again
-//        groupByMultipleCheckComboBox.apply {
-//            disableProperty().bind(currentTimeReportProperty.isNull)
-//            converter = GroupingComboBoxConverter(groupByMultipleCheckComboBox.items)
-//            checkModel.checkedItems.addListener(ListChangeListener { change ->
-//                val checkedItemsInOrder = change.list
-//                settingsModel.lastUsedGroupByCategoryIdsProperty.setAll(checkedItemsInOrder.map { it.id })
-//                displayWorklogResult()
-//            })
-//        }
-//
-//        groupingsCollection.addListener(ListChangeListener {
-//            groupByMultipleCheckComboBox.items.clear()
-//            groupByMultipleCheckComboBox.items.addAll(it.list)
-//        })
-//
-//        currentTimeReportProperty.addListener { _, _, newTimeReport ->
-//            newTimeReport?.let { report ->
-//                val allGroupings = GroupingFactory.getAvailableGroupings(report)
-//                val selectedGrouping = getSelectedGrouping(allGroupings)
-//                groupingsCollection.clear()
-//                groupingsCollection.addAll(allGroupings)
-//
-//                groupByMultipleCheckComboBox.checkModel.setCheckedItems(selectedGrouping)
-//                displayWorklogResult()
-//            }
-//        }
+        // TODO groupings listener to update the settingsModel.lastusedgroupby
     }
 
-    private fun initializeGroupingComboBox(comboBox: ComboBox<Grouping>) {
-        comboBox.apply {
+    private fun addGroupingSelector(selectedGroupingId: String? = null) {
+        val groupingSelector = GroupingSelector().apply {
             disableProperty().bind(currentTimeReportProperty.isNull)
-            converter = GroupingComboBoxConverter(items)
-            selectionModel.selectedItemProperty().addListener { _, _, selectedGrouping ->
-                selectedGrouping?.let {
-                    val index = allGroupingComboBoxes.indexOf(this)
-                    settingsModel.lastUsedGroupByCategoryIdsProperty.add(index, selectedGrouping.id)
-                    displayWorklogResult()
-                }
+            possibleGroupingsProperty.bind(currentlyAvailableGroupingCriterias)
+            removeGroupingButton.setOnAction {
+                groupings.remove(this)
+                displayWorklogResult()
+            }
+            selectedGroupingProperty.addListener { _, _, _ -> displayWorklogResult() }
+            selectedGroupingId?.let { id ->
+                selectedGroupingProperty.set(currentlyAvailableGroupingCriterias.find { it.id == id })
             }
         }
-    }
 
-    private fun getSelectedGrouping(allGroupings: List<Grouping>): List<Grouping> {
-        return settingsModel.lastUsedGroupByCategoryIdsProperty.mapNotNull { lastUsedGroupingId ->
-            allGroupings.find { it.id == lastUsedGroupingId }
-        }
+        groupings.add(groupingSelector)
     }
 
     private fun addDownloadLinkToToolbarIfNeverVersionPresent(event: WorkerStateEvent) {
@@ -464,12 +406,12 @@ class MainViewController : Initializable, TaskRunner, TaskExecutor {
     private fun displayWorklogResult() {
         LOGGER.info("Presenting TimeReport to the user")
         val timeReport = currentTimeReportProperty.value!!
-        val groupings = Groupings(selectedGroupingsInOrder())
-        resultTabPane.update(timeReport, groupings)
+        resultTabPane.update(timeReport, selectedGrouping())
     }
 
-    private fun selectedGroupingsInOrder(): List<Grouping> {
-        return allGroupingComboBoxes.mapNotNull { it.selectionModel.selectedItem }
+    private fun selectedGrouping(): Groupings {
+        val selectedGroupings = groupings.mapNotNull { it.selectedGroupingProperty.value }.toList()
+        return Groupings(selectedGroupings)
     }
 
     private fun exitWorklogViewer() {

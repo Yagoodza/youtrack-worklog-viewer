@@ -12,8 +12,13 @@ class Groupings(private val groupings: List<Grouping>) {
      * by applying any necessary grouping criteria
      */
     fun rows(issues: List<Issue>): List<ReportRow> {
-
         val rootGroup = IssueGroup("root", issues)
+
+        TODO("This does not work properly yet")
+
+        val defaultedGroupings = groupings.takeIf { it.isNotEmpty() } ?: listOf()
+
+
         var previousGroups = listOf(rootGroup)
         groupings.forEach { grouping ->
             val tmpPreviousGroups = mutableListOf<IssueGroup>()
@@ -50,5 +55,9 @@ class Groupings(private val groupings: List<Grouping>) {
 
     internal data class IssueGroup(val groupValue: String, val issues: List<Issue>) {
         val subgroups : MutableList<IssueGroup> = mutableListOf()
+    }
+
+    override fun toString(): String {
+        return "Groupings { groupings = $groupings }"
     }
 }
