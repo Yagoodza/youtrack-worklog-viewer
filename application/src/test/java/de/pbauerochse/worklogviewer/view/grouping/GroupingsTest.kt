@@ -1,8 +1,8 @@
 package de.pbauerochse.worklogviewer.view.grouping
 
 import de.pbauerochse.worklogviewer.TestDataProvider
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.fail
+import de.pbauerochse.worklogviewer.util.FormattingUtil
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
 internal class GroupingsTest {
@@ -18,12 +18,27 @@ internal class GroupingsTest {
 
     @Test
     fun `grouping by a single project field value`() {
-        fail<Unit>("Not implemented yet")
+        val grouping = Groupings(listOf(FieldBasedGrouping("Criteria C")))
+
+        val rows = grouping.rows(TestDataProvider.issues)
+
+        assertEquals(15, rows.size)
+        assertTrue(rows.all { row -> row.children.all { it.isIssue } })
     }
 
     @Test
     fun `grouping by a single worklog item field value`() {
-        fail<Unit>("Not implemented yet")
+        val grouping = Groupings(
+            listOf(WorklogItemBasedGrouping(
+                "WORKTYPE",
+                FormattingUtil.getFormatted("grouping.worktype")
+            ) { it.workType })
+        )
+
+        val rows = grouping.rows(TestDataProvider.issues)
+
+        assertEquals(5, rows.size)
+        assertTrue(rows.all { row -> row.children.all { it.isIssue } })
     }
 
     @Test

@@ -14,26 +14,43 @@ class Groupings(private val groupings: List<Grouping>) {
     fun rows(issues: List<Issue>): List<ReportRow> {
         val rootGroup = IssueGroup("root", issues)
 
-        TODO("This does not work properly yet")
+        if (groupings.isEmpty()) {
+            rootGroup.subgroups.add(IssueGroup("MEH?", issues))
+        } else {
+            val inputGroups = mutableListOf(rootGroup)
+            groupings.forEach { grouping ->
+                val currentPassGroups = mutableListOf<IssueGroup>()
+                inputGroups.forEach { inputGroup ->
+                    val subGroups = extractIssueGroups(inputGroup, grouping)
+                    inputGroup.subgroups.addAll(subGroups)
+                    currentPassGroups.addAll(subGroups)
+                }
 
-        val defaultedGroupings = groupings.takeIf { it.isNotEmpty() } ?: listOf()
-
-
-        var previousGroups = listOf(rootGroup)
-        groupings.forEach { grouping ->
-            val tmpPreviousGroups = mutableListOf<IssueGroup>()
-            previousGroups.forEach { parentGroup ->
-                val subgroups = grouping
-                    .group(parentGroup.issues)
-                    .map { group -> IssueGroup(group.key, group.value) }
-                parentGroup.subgroups.addAll(subgroups)
-                tmpPreviousGroups.addAll(subgroups)
+                inputGroups.clear()
+                inputGroups.addAll(currentPassGroups)
             }
-
-            previousGroups = tmpPreviousGroups
         }
 
+//        var previousGroups = listOf(rootGroup)
+//        groupings.forEach { grouping ->
+//            val tmpPreviousGroups = mutableListOf<IssueGroup>()
+//            previousGroups.forEach { parentGroup ->
+//                val subgroups = grouping
+//                    .group(parentGroup.issues)
+//                    .map { group -> IssueGroup(group.key, group.value) }
+//                parentGroup.subgroups.addAll(subgroups)
+//                tmpPreviousGroups.addAll(subgroups)
+//            }
+//
+//            previousGroups = tmpPreviousGroups
+//        }
+
         return rootGroup.subgroups.flatMap { createReportRows(it) }
+    }
+
+    private fun extractIssueGroups(parent: IssueGroup, grouping: Grouping): List<IssueGroup> {
+        val groupedIssues = grouping.group(parent.issues)
+        return groupedIssues.map { IssueGroup(it.key, it.value) }
     }
 
     private fun createReportRows(group: IssueGroup, parent: ReportRow? = null): List<ReportRow> {

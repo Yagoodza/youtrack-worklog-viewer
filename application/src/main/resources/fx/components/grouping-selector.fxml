@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.Button?>
-<?import javafx.scene.control.ComboBox?>
-<?import javafx.scene.control.Tooltip?>
-<?import javafx.scene.layout.HBox?>
-<fx:root prefWidth="500.0" type="javafx.scene.layout.HBox" xmlns="http://javafx.com/javafx/10.0.2-internal" xmlns:fx="http://javafx.com/fxml/1">
-    <ComboBox fx:id="groupingComboBox" HBox.hgrow="ALWAYS" promptText="%view.main.grouping.label" />
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<fx:root type="javafx.scene.layout.HBox" xmlns="http://javafx.com/javafx/10.0.2-internal" xmlns:fx="http://javafx.com/fxml/1">
+    <ComboBox fx:id="groupingComboBox" promptText="%view.main.grouping.label" HBox.hgrow="ALWAYS" />
     <Button fx:id="removeGroupingButton" text="X">
         <tooltip>
             <Tooltip text="%view.main.grouping.remove.tooltip" />
