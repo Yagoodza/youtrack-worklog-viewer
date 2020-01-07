@@ -15,6 +15,7 @@ import de.pbauerochse.worklogviewer.settings.SettingsUtil
 import de.pbauerochse.worklogviewer.util.FormattingUtil.getFormatted
 import de.pbauerochse.worklogviewer.view.ReportViewFactory
 import de.pbauerochse.worklogviewer.view.grouping.Groupings
+import javafx.application.Platform
 import javafx.geometry.Insets
 import javafx.geometry.Orientation
 import javafx.scene.Node
@@ -46,10 +47,11 @@ abstract class WorklogsTab(label: String) : Tab(label), TabContext {
 
     fun update(label: String, filteredIssues: List<Issue>, reportParameters: TimeReportParameters, groupings: Groupings) {
         text = label
-        nextData = ReportViewFactory.convert(filteredIssues, reportParameters, groupings)
-
-        if (isSelected) {
-            renderContent()
+        Platform.runLater {
+            nextData = ReportViewFactory.convert(filteredIssues, reportParameters, groupings)
+            if (isSelected) {
+                renderContent()
+            }
         }
     }
 
