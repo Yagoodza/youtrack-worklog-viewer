@@ -1,4 +1,4 @@
-package de.pbauerochse.worklogviewer.fx.components.groupings
+package de.pbauerochse.worklogviewer.fx.groupings
 
 import de.pbauerochse.worklogviewer.fx.converter.GroupingComboBoxConverter
 import de.pbauerochse.worklogviewer.util.FormattingUtil
@@ -38,6 +38,20 @@ class GroupingSelector: HBox(), Initializable {
         groupingComboBox.converter = GroupingComboBoxConverter(possibleGroupingsProperty)
         groupingComboBox.itemsProperty().bind(possibleGroupingsProperty)
         groupingComboBox.valueProperty().bindBidirectional(selectedGroupingProperty)
+
+    }
+
+    internal fun setSelectedGrouping(selectedGroupingId: String?) {
+        if (selectedGroupingId != null) {
+            selectedGroupingProperty.value = possibleGroupingsProperty.find { it.id == selectedGroupingId }
+        }
+    }
+
+    fun unbind() {
+        groupingComboBox.itemsProperty().unbind()
+        groupingComboBox.valueProperty().unbind()
+        selectedGroupingProperty.unbind()
+        possibleGroupingsProperty.unbind()
     }
 
     companion object {

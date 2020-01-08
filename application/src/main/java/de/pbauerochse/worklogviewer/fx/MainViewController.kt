@@ -2,12 +2,13 @@ package de.pbauerochse.worklogviewer.fx
 
 import de.pbauerochse.worklogviewer.WorklogViewer
 import de.pbauerochse.worklogviewer.connector.YouTrackConnectorLocator
-import de.pbauerochse.worklogviewer.fx.components.groupings.GroupingSelector
 import de.pbauerochse.worklogviewer.fx.components.plugins.PluginMenu
 import de.pbauerochse.worklogviewer.fx.components.plugins.PluginToolbarActionGroup
 import de.pbauerochse.worklogviewer.fx.components.tabs.TimeReportResultTabbedPane
 import de.pbauerochse.worklogviewer.fx.converter.TimerangeProviderStringConverter
 import de.pbauerochse.worklogviewer.fx.dialog.Dialog
+import de.pbauerochse.worklogviewer.fx.groupings.GroupingSelector
+import de.pbauerochse.worklogviewer.fx.groupings.GroupingView
 import de.pbauerochse.worklogviewer.fx.listener.DatePickerManualEditListener
 import de.pbauerochse.worklogviewer.fx.plugins.PluginActionContextAdapter
 import de.pbauerochse.worklogviewer.fx.plugins.WorklogViewerStateAdapter
@@ -38,7 +39,6 @@ import de.pbauerochse.worklogviewer.view.grouping.Grouping
 import de.pbauerochse.worklogviewer.view.grouping.GroupingFactory
 import de.pbauerochse.worklogviewer.view.grouping.Groupings
 import javafx.application.Platform
-import javafx.beans.binding.Bindings
 import javafx.beans.property.SimpleListProperty
 import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.value.ChangeListener
@@ -48,7 +48,6 @@ import javafx.concurrent.Worker
 import javafx.concurrent.WorkerStateEvent
 import javafx.event.EventHandler
 import javafx.fxml.Initializable
-import javafx.scene.Node
 import javafx.scene.control.*
 import javafx.scene.input.KeyCombination
 import javafx.scene.input.KeyEvent
@@ -68,8 +67,7 @@ import java.util.concurrent.Future
 class MainViewController : Initializable, TaskRunner, TaskExecutor {
 
     lateinit var timerangeComboBox: ComboBox<TimerangeProvider>
-    lateinit var addGroupingButton: Button
-    lateinit var groupingsContainer: HBox
+    lateinit var groupingsContainer: Pane
     lateinit var fetchWorklogButton: Button
     lateinit var exportToExcelMenuItem: MenuItem
     lateinit var settingsMenuItem: MenuItem
@@ -88,6 +86,8 @@ class MainViewController : Initializable, TaskRunner, TaskExecutor {
     private lateinit var settingsModel: SettingsViewModel
     private lateinit var dialog: Dialog
 
+    private lateinit var groupingView: GroupingView
+
     private val currentlyAvailableGroupingCriterias: SimpleListProperty<Grouping> = SimpleListProperty(FXCollections.observableArrayList())
     private val groupings: ObservableList<GroupingSelector> = FXCollections.observableArrayList()
 
@@ -104,7 +104,9 @@ class MainViewController : Initializable, TaskRunner, TaskExecutor {
         initializeFetchWorklogsButton()
         initializeMenuItems()
         initializePluginsMenu()
-        initializeGroupings()
+//        initializeGroupings()
+        groupingView = GroupingView(settingsModel, currentTimeReportProperty)
+        groupingsContainer.children.add(groupingView)
 
         // workaround to detect whether the whole form has been rendered to screen yet
         mainToolbar.sceneProperty().addListener { _, oldValue, newValue ->
@@ -298,42 +300,23 @@ class MainViewController : Initializable, TaskRunner, TaskExecutor {
     }
 
     private fun updateGroupingCriteria(timeReport: TimeReport) {
-        val groupings = GroupingFactory.getAvailableGroupings(timeReport)
-        LOGGER.debug("Updating available grouping criteria: $groupings")
+        val availableGroupings = GroupingFactory.getAvailableGroupings(timeReport)
+        LOGGER.debug("Updating available grouping criteria: $availableGroupings")
         currentlyAvailableGroupingCriterias.clear()
-        currentlyAvailableGroupingCriterias.addAll(groupings)
-    }
+        currentlyAvailableGroupingCriterias.addAll(availableGroupings)
 
-    private fun initializeGroupings() {
-        // synchronize groupingsContainer with the groupings List
-        @Suppress("UNCHECKED_CAST")
-        Bindings.bindContentBidirectional(groupings as ObservableList<Node>, groupingsContainer.children)
-
-        // restore groupings from the settings
-        settingsModel.lastUsedGroupByCategoryIdsProperty.forEach { addGroupingSelector(it) }
-
-        // add groupings button
-        addGroupingButton.disableProperty().bind(Bindings.size(groupings).greaterThanOrEqualTo(MAX_GROUPINGS).or(currentTimeReportProperty.isNull))
-        addGroupingButton.setOnAction { addGroupingSelector() }
-
-        // TODO groupings listener to update the settingsModel.lastusedgroupby
-    }
-
-    private fun addGroupingSelector(selectedGroupingId: String? = null) {
-        val groupingSelector = GroupingSelector().apply {
-            disableProperty().bind(currentTimeReportProperty.isNull)
-            possibleGroupingsProperty.bind(currentlyAvailableGroupingCriterias)
-            removeGroupingButton.setOnAction {
-                groupings.remove(this)
-                displayWorklogResult()
-            }
-            selectedGroupingProperty.addListener { _, _, _ -> displayWorklogResult() }
-            selectedGroupingId?.let { id ->
-                selectedGroupingProperty.set(currentlyAvailableGroupingCriterias.find { it.id == id })
+        // restore selected values from settingsModel
+        settingsModel.lastUsedGroupByCategoryIdsProperty.forEachIndexed { index, groupingId ->
+            if (groupings.size > index) {
+                groupings[index].selectedGroupingProperty.value = availableGroupings.find { it.id == groupingId }
             }
         }
+    }
 
-        groupings.add(groupingSelector)
+    private fun onGroupingsChanged() {
+        LOGGER.debug("Groupings changed")
+        settingsModel.lastUsedGroupByCategoryIdsProperty.setAll(groupings.map { it.selectedGroupingProperty.value?.id })
+        displayWorklogResult()
     }
 
     private fun addDownloadLinkToToolbarIfNeverVersionPresent(event: WorkerStateEvent) {

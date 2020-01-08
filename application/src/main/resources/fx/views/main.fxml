@@ -46,13 +46,7 @@
                                 </Button>
 
                                 <Separator orientation="VERTICAL" />
-                                <Label text="%view.main.grouping.label" />
-                                <Button fx:id="addGroupingButton" mnemonicParsing="false" prefHeight="26.0" prefWidth="26.0">
-                                    <tooltip>
-                                        <Tooltip text="%view.main.grouping.add" />
-                                    </tooltip>
-                                </Button>
-                                <HBox fx:id="groupingsContainer"/>
+                                <HBox fx:id="groupingsContainer" />
 
                                 <Separator orientation="VERTICAL" />
                                 <HBox fx:id="pluginsToolbarButtons" />
