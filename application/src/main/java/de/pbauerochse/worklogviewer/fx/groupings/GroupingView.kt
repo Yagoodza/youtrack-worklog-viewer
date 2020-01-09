@@ -112,7 +112,7 @@ class GroupingView(
     }
 
     private fun bindReportChangeListeners() {
-        timereportProperty.addListener { _, _, timeReport -> timeReport?.let { onTimeReport(it) }}
+        timereportProperty.addListener { _, _, timeReport -> timeReport?.let { onTimeReport(it) } }
     }
 
     private fun onTimeReport(timeReport: TimeReport) {
@@ -136,7 +136,6 @@ class GroupingView(
 
         LOGGER.debug("Groupings changed to $selectedGroupingsInOrder")
         groupingsProperty.value = Groupings(selectedGroupingsInOrder)
-
         settingsViewModel.lastUsedGroupByCategoryIdsProperty.setAll(selectedGroupingsInOrder.map { it?.id })
     }
 

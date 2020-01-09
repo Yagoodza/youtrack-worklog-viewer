@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory
 import java.net.URL
 import java.util.*
 
-class GroupingSelector: HBox(), Initializable {
+class GroupingSelector : HBox(), Initializable {
 
     val possibleGroupingsProperty: ListProperty<Grouping> = SimpleListProperty()
     val selectedGroupingProperty: ObjectProperty<Grouping> = SimpleObjectProperty()
@@ -37,13 +37,13 @@ class GroupingSelector: HBox(), Initializable {
         LOGGER.debug("Initializing")
         groupingComboBox.converter = GroupingComboBoxConverter(possibleGroupingsProperty)
         groupingComboBox.itemsProperty().bind(possibleGroupingsProperty)
-        groupingComboBox.valueProperty().bindBidirectional(selectedGroupingProperty)
 
+        selectedGroupingProperty.bind(groupingComboBox.valueProperty())
     }
 
     internal fun setSelectedGrouping(selectedGroupingId: String?) {
         if (selectedGroupingId != null) {
-            selectedGroupingProperty.value = possibleGroupingsProperty.find { it.id == selectedGroupingId }
+            groupingComboBox.valueProperty().value = possibleGroupingsProperty.find { it.id == selectedGroupingId }
         }
     }
 

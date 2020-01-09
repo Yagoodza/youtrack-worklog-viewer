@@ -7,7 +7,6 @@ import de.pbauerochse.worklogviewer.fx.components.plugins.PluginToolbarActionGro
 import de.pbauerochse.worklogviewer.fx.components.tabs.TimeReportResultTabbedPane
 import de.pbauerochse.worklogviewer.fx.converter.TimerangeProviderStringConverter
 import de.pbauerochse.worklogviewer.fx.dialog.Dialog
-import de.pbauerochse.worklogviewer.fx.groupings.GroupingSelector
 import de.pbauerochse.worklogviewer.fx.groupings.GroupingView
 import de.pbauerochse.worklogviewer.fx.listener.DatePickerManualEditListener
 import de.pbauerochse.worklogviewer.fx.plugins.PluginActionContextAdapter
@@ -35,15 +34,9 @@ import de.pbauerochse.worklogviewer.timerange.TimerangeProviders
 import de.pbauerochse.worklogviewer.trimToNull
 import de.pbauerochse.worklogviewer.util.FormattingUtil.getFormatted
 import de.pbauerochse.worklogviewer.version.Version
-import de.pbauerochse.worklogviewer.view.grouping.Grouping
-import de.pbauerochse.worklogviewer.view.grouping.GroupingFactory
-import de.pbauerochse.worklogviewer.view.grouping.Groupings
 import javafx.application.Platform
-import javafx.beans.property.SimpleListProperty
 import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.value.ChangeListener
-import javafx.collections.FXCollections
-import javafx.collections.ObservableList
 import javafx.concurrent.Worker
 import javafx.concurrent.WorkerStateEvent
 import javafx.event.EventHandler
@@ -88,9 +81,6 @@ class MainViewController : Initializable, TaskRunner, TaskExecutor {
 
     private lateinit var groupingView: GroupingView
 
-    private val currentlyAvailableGroupingCriterias: SimpleListProperty<Grouping> = SimpleListProperty(FXCollections.observableArrayList())
-    private val groupings: ObservableList<GroupingSelector> = FXCollections.observableArrayList()
-
     override fun initialize(location: URL?, resources: ResourceBundle) {
         LOGGER.debug("Initializing main view")
         this.resources = resources
@@ -104,9 +94,7 @@ class MainViewController : Initializable, TaskRunner, TaskExecutor {
         initializeFetchWorklogsButton()
         initializeMenuItems()
         initializePluginsMenu()
-//        initializeGroupings()
-        groupingView = GroupingView(settingsModel, currentTimeReportProperty)
-        groupingsContainer.children.add(groupingView)
+        initializeGroupings()
 
         // workaround to detect whether the whole form has been rendered to screen yet
         mainToolbar.sceneProperty().addListener { _, oldValue, newValue ->
@@ -206,7 +194,6 @@ class MainViewController : Initializable, TaskRunner, TaskExecutor {
         // display TimeReport when ready
         currentTimeReportProperty.addListener { _, _, newReport ->
             if (newReport != null) {
-                updateGroupingCriteria(newReport)
                 displayWorklogResult()
             }
         }
@@ -299,24 +286,14 @@ class MainViewController : Initializable, TaskRunner, TaskExecutor {
         )
     }
 
-    private fun updateGroupingCriteria(timeReport: TimeReport) {
-        val availableGroupings = GroupingFactory.getAvailableGroupings(timeReport)
-        LOGGER.debug("Updating available grouping criteria: $availableGroupings")
-        currentlyAvailableGroupingCriterias.clear()
-        currentlyAvailableGroupingCriterias.addAll(availableGroupings)
+    private fun initializeGroupings() {
+        groupingView = GroupingView(settingsModel, currentTimeReportProperty)
+        groupingsContainer.children.add(groupingView)
 
-        // restore selected values from settingsModel
-        settingsModel.lastUsedGroupByCategoryIdsProperty.forEachIndexed { index, groupingId ->
-            if (groupings.size > index) {
-                groupings[index].selectedGroupingProperty.value = availableGroupings.find { it.id == groupingId }
-            }
+        groupingView.groupingsProperty.addListener { _, _, newGroupings ->
+            LOGGER.debug("Groupings changed to $newGroupings")
+            displayWorklogResult()
         }
-    }
-
-    private fun onGroupingsChanged() {
-        LOGGER.debug("Groupings changed")
-        settingsModel.lastUsedGroupByCategoryIdsProperty.setAll(groupings.map { it.selectedGroupingProperty.value?.id })
-        displayWorklogResult()
     }
 
     private fun addDownloadLinkToToolbarIfNeverVersionPresent(event: WorkerStateEvent) {
@@ -389,12 +366,7 @@ class MainViewController : Initializable, TaskRunner, TaskExecutor {
     private fun displayWorklogResult() {
         LOGGER.info("Presenting TimeReport to the user")
         val timeReport = currentTimeReportProperty.value!!
-        resultTabPane.update(timeReport, selectedGrouping())
-    }
-
-    private fun selectedGrouping(): Groupings {
-        val selectedGroupings = groupings.mapNotNull { it.selectedGroupingProperty.value }.toList()
-        return Groupings(selectedGroupings)
+        resultTabPane.update(timeReport, groupingView.groupingsProperty.value)
     }
 
     private fun exitWorklogViewer() {
@@ -418,7 +390,6 @@ class MainViewController : Initializable, TaskRunner, TaskExecutor {
     companion object {
         private val LOGGER = LoggerFactory.getLogger(MainViewController::class.java)
         private const val REQUIRED_FIELD_CLASS = "required"
-        private const val MAX_GROUPINGS = 3
     }
 
     /**
